@@ -25,7 +25,7 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
     depends_on:
-      - web_wsp_yb
+      - yt_wsp
 
 networks:
   default:
