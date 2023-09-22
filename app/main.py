@@ -13,10 +13,10 @@ def bienvenido():
 def verify_token():
     try:
         token = request.args.get('hub.verify_token')
-        challengue = request.args.get('hub.challengue')
+        challenge = request.args.get('hub.challenge')
 
-        if token == sett.token and challengue != None:
-            return challengue
+        if token == sett.token and challenge != None:
+            return challenge
         else:
             return 'Token incorrecto'
 
