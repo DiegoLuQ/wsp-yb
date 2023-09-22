@@ -12,10 +12,11 @@ def bienvenido():
 @app.route('/webhook', methods=['GET'])
 def verify_token():
     try:
+        access_token = "holdiego1598248"
         token = request.args.get('hub.verify_token')
         challenge = request.args.get('hub.challenge')
 
-        if token == sett.token and challenge != None and token != None:
+        if token == access_token and challenge != None and token != None:
             return challenge
         else:
             return 'Token incorrecto'
