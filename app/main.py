@@ -15,7 +15,7 @@ def verify_token():
         token = request.args.get('hub.verify_token')
         challenge = request.args.get('hub.challenge')
 
-        if token == sett.token and challenge != None:
+        if token == sett.token and challenge != None and token != None:
             return challenge
         else:
             return 'Token incorrecto'
@@ -45,4 +45,5 @@ def recibir_mensaje():
 
 
 if __name__ == '__main__':
+    print(sett.token)
     app.run(host='0.0.0.0', debug=True, port=152)
