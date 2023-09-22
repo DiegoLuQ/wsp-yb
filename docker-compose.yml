@@ -20,8 +20,8 @@ services:
       - "142:80"
     environment:
       - VIRTUAL_PORT=80
-      - VIRTUAL_HOST=wsp-yt.santiagofiltros.cl
-      - LETSENCRYPT_HOST=wsp-yt.santiagofiltros.cl
+      - VIRTUAL_HOST=wsp-yb.santiagofiltros.cl
+      - LETSENCRYPT_HOST=wsp-yb.santiagofiltros.cl
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
     depends_on:
