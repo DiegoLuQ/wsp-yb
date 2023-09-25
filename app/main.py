@@ -39,7 +39,8 @@ def recibir_mensaje():
         contacts = value['contacts'][0]
         name = contacts['profile']['name']
         text = services.obtener_Mensaje_whatsapp(message)
-        services.administrar_chatbot(text, number, messageId, name)
+        timestamp = int(message['timestamp'])
+        services.administrar_chatbot(text, number, messageId, name, timestamp)
         return 'EVENT_RECEIVED'
     except Exception as e:
         return e

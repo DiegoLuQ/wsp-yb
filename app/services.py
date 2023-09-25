@@ -2,7 +2,9 @@ import requests
 import json
 import time
 from config import settings as sett
-
+import re
+from datetime import datetime
+from database import DatabaseManager
 
 def obtener_Mensaje_whatsapp(message):
     if 'type' not in message:
@@ -217,99 +219,186 @@ def markRead_Message(messageId):
     })
     return data
 
+def administrar_chatbot(text, number, messageId, name, timestamp):
+    db_manager = DatabaseManager()
+    db_type = 'mysql'
+    conn = db_manager.connect(db_type)
 
-
-
-def administrar_chatbot(text, number, messageId, name):
     text = text.lower()
+
     print("mensaje del usuario: ",text)
+
     list_for = []
-    markRead = markRead_Message(messageId)
-    list_for.append(markRead)
-    time.sleep(2)
+    # markRead = markRead_Message(messageId)
+    # list_for.append(markRead)
+    # time.sleep(2)
 
-    try:
-        if "hola" in text:
-            body = "¡Hola! 👋 Bienvenido a SF. ¿Cómo podemos ayudarte hoy?"
-            # datamsg = text_Message(number, body)
-            footer = "Equipo SF"
-            options = ["✅ productos", "📅 agendar cita"]
-            replyButtonData = buttonReply_Message(number, options, body, footer, "sed1", messageId)
-            replyReaction = replyReaction_Message(number, messageId, "😁")
-            list_for.append(replyReaction)
-            list_for.append(replyButtonData)
-            # list_for.append(datamsg)
-        elif "productos" in text:
-            body = "Aqui te envio las categorias de nuestros productos. ¿Cuál de estas categorias te gustaria explorar?"
-            footer = "Equipo SF"
-            options = ["Filtro de Aire", "Filtro dee Aceite", "Filtro de Combustible"]
-
-            listReplyData = listReply_Message(number, options, body, footer, "sed2", messageId)
-            sticker = sticker_Message(number, get_media_id('perro_traje', 'sticker'))
-
-            list_for.append(listReplyData)
-            list_for.append(sticker)
+    if "hola" in text:
+        body = "¡Hola! Bienvenido a Soporte SF . ¿Cómo podemos ayudarte?"
+        footer = "Equipo SF"
+        options = ["📟 generar ticket", "🔎 ver estado ticket", "🔄 actualizar ticket"]
+        print(options)
+        replyButtonData = buttonReply_Message(number, options, body, footer, "sed1", messageId)
+        print(" options 2")
+        # replyReaction = replyReaction_Message(number, messageId, "😁")
+        list_for.append(replyButtonData)
+        # list_for.append(replyReaction)
         
-        elif "filtro de aire" in text:
-            body = "Buenísima elección. ¿Te gustaria que te enviara un documento PDF con los filtros que tenemos?"
-            footer = "Equipo SF"
-            options = ["✅Si, envia el PDF", "❌No, gracias"]
+    elif "generar ticket" in text:
+        textMessage = text_Message(number, "Buena elección! Por favor ingresa su consulta con el siguiente formato: \n\n*'Ingrese Incidente: <Ingrese breve descripcion del problema>* \n\n Para que nuestros analistas lo revisen 🤓")
+        list_for.append(textMessage)
 
-            replyButtonData = buttonReply_Message(number, options, body, footer, "sed3", messageId)
-            
-            list_for.append(replyButtonData)
+    elif "ingrese incidente" in text:
+        description = re.search("ingrese incidente:(.*)", text, re.IGNORECASE).group(1).strip()
+        create_at = datetime.fromtimestamp(timestamp)
+        ticket_id = db_manager.generate_next_ticket(db_type, conn)
+        db_manager.create_ticket(db_type, conn, ticket_id, 'Nuevo', create_at, number, name, description)
+        body = f"Perfecto, se generó el ticket *{ticket_id}*, en breves se estaran comunicando contigo. \n\n¿Deseas realizar otra consulta?"
+        footer = "Equipo SF"
+        options = ["✅Sí","❌No, gracias"]
+        replyButtonData = buttonReply_Message(number, options, body, footer, "sed2", messageId)
 
-        elif "si, envia el pdf" in text:
-            sticker = sticker_Message(number, get_media_id("pelfet", "sticker"))
-            textMessage = text_Message(number, "Buenarda elección. En breve nos comunicaremos con usted")
+        list_for.append(replyButtonData)
 
-            enviar_Mensaje_whatsapp(sticker)
-            enviar_Mensaje_whatsapp(textMessage)
-            time.sleep(3)
+    elif "sí" in text:
+        body = "¿Cómo podemos ayudarte hoy"
+        footer = "Equipo SF"
+        options = ["📟 generar ticket", "🔎 ver estado ticket", "🔄 actualizar ticket"]
+        replyButtonData = buttonReply_Message(number, options, body, footer, "sed3", messageId)
 
-            document = document_Message(number, sett.doc_url, "✌ Listo", "SF-Filtros de Aire")
-            enviar_Mensaje_whatsapp(document)
-            time.sleep(3)
+        list_for.append(replyButtonData)
 
-            body = "¿Te gustaría programar una reunion con uno de nuestros especialistas para discutir estos servicios mas a fondo?"
-            footer = "Equipo SF"
-            options = ["✅Si, agenda una reunión", "No, gracias"]
+    elif "ver estado ticket" in text:
+        textMessage = text_Message(number, "Buenisa eleccion! Para verificar su estado ingresa el siguiente formato:\n\n*Buscar TKXXX* \n\n")
+        list_for.append(textMessage)
 
-            replyButtonData = buttonReply_Message(number, options, body, footer, "sed4", messageId)
-
-            list_for.append(replyButtonData)
-
-        elif "sí, agenda una reunión" in text:
-            body = "Estupendo. Por favor, seleccione una fecha y hora para la reunion:"
-            footer = "Equipo SF"
-            options = ["📅 25-09-23 09:00", "📅 25-09-23 10:00", "📅 25-09-23 11:00"]
-
-            listReply = listReply_Message(number, options, body, footer, "sed5", messageId)
-
-            list_for.append(listReply)
-        
-        elif "25-09-23 09:00" in text:
-            body = "Excelente, has seleccionado la reunion para el 25 de septiembre a las 9am. Te enviare un recordatorio un día antes. ¿Necesitas ayuda con algo mas hoy?"
-            footer = "Equipo SF"
-            options = ["✅Si, por favor", "No, gracias"]
-
-            buttonReply = buttonReply_Message(number, options, body, footer, "sed6", messageId)
-            list_for.append(buttonReply)
-        elif "no, gracias" in text:
-            msg = "Perfect! No dudes en contactarnos si tienes más preguntas. Recuerda que tambien ofrecemos material gratuito para la comunidad. ¡Hasta luego! 😁"
-            textMessage = text_Message(number, msg)
-            list_for.append(textMessage)
+    elif "buscar tk" in text:
+        ticket_id = re.search("buscar (tk.*)", text, re.IGNORECASE).group(1).upper().strip()
+        print(ticket_id)
+        status = db_manager.get_ticket(db_type, conn, ticket_id)
+        if status == None:
+            body = f"Lo siento, no se encontró el ticket *{ticket_id}*. \n\n¿Deseas realizar otra consulta?"
         else:
-            body = "Hola. ¿Quieres que te ayude con alguna de estas opciones?"
-            footer = "Equipo SF"
-            options = ["✅ productos", "📅 agendar cita"]
-            list_for.append(body)
-            replyButtonData = buttonReply_Message(number, options, body, footer, "sed7", messageId)
-            list_for.append(replyButtonData)
-        print(len(list_for))
-        for item in list_for:
-            enviar_Mensaje_whatsapp(item)
+            body = f"Perfecto, el ticket *{ticket_id}* se encuentra en {status}. \n\n¿Deseas realizar otra consulta?"
+        footer = "Equipo SF"
+        options = ["✅Sí","❌No, gracias"]
+        replyButtonData = buttonReply_Message(number, options, body, footer, "sed4", messageId)
+        list_for.append(replyButtonData)
+    elif "actualizar ticket" in text:
+        textMessage = text_Message(number, "De acuerdo, por favor ingresa el siguiente formato:\n\n*Actualizar TKXX:<Breve descripcion>*. ")
+        list_for.append(textMessage)
+    elif "actualizar tkt" in text:
+        match = re.search("actualizar (tkt.*):(.*)", text, re.IGNORECASE)
+        ticket_id = match.group(1).upper().strip()
+        descripcion_actualizada = match.group(2).strip()
+        updated = db_manager.update_ticket(db_type, conn, ticket_id, description=descripcion_actualizada)
+        if updated:
+            body = f"Perfecto, se actualizó el ticket *{ticket_id}*. \n\n¿Deseas realizar otra consulta?"
+        else:
+            body = f"Lo siento, no se encontró el ticket *{ticket_id}*. \n\n¿Deseas realizar otra consulta?"
+        footer = "Equipo SF"
+        options = ["✅Sí","❌No, gracias"]
 
-    except Exception as e:
-        raise e
+        replyButtonData = buttonReply_Message(number, options, body, footer, "sed5", messageId)
+        list_for.append(replyButtonData)
+    elif "no, gracias" in text:
+        textMessage = text_Message(number, "Perfecto! No dudes en contactarnos si tienes mas preguntas. ¡Hasta Luego! 😁")
+        list_for.append(textMessage)
+    else:
+        textMessage = text_Message(number, "Lo siento, no entendi lo que dijiste. ¿Quieres que te ayuda con alguna de estas opciones?")
+        list_for.append(textMessage)
+
+    for item in list_for:
+        print("imprimiendo item")
+        enviar_Mensaje_whatsapp(item)
+    
+    db_manager.disconnect(db_type, conn)
+
+
+
+
+    # try:
+    #     if "hola" in text:
+    #         body = "¡Hola! 👋 Bienvenido a SF. ¿Cómo podemos ayudarte hoy?"
+    #         # datamsg = text_Message(number, body)
+    #         footer = "Equipo SF"
+    #         options = ["✅ productos", "📅 agendar cita"]
+    #         replyButtonData = buttonReply_Message(number, options, body, footer, "sed1", messageId)
+    #         replyReaction = replyReaction_Message(number, messageId, "😁")
+    #         list_for.append(replyReaction)
+    #         list_for.append(replyButtonData)
+    #         # list_for.append(datamsg)
+    #     elif "productos" in text:
+    #         body = "Aqui te envio las categorias de nuestros productos. ¿Cuál de estas categorias te gustaria explorar?"
+    #         footer = "Equipo SF"
+    #         options = ["Filtro de Aire", "Filtro dee Aceite", "Filtro de Combustible"]
+
+    #         listReplyData = listReply_Message(number, options, body, footer, "sed2", messageId)
+    #         sticker = sticker_Message(number, get_media_id('perro_traje', 'sticker'))
+
+    #         list_for.append(listReplyData)
+    #         list_for.append(sticker)
+        
+    #     elif "filtro de aire" in text:
+    #         body = "Buenísima elección. ¿Te gustaria que te enviara un documento PDF con los filtros que tenemos?"
+    #         footer = "Equipo SF"
+    #         options = ["✅Si, envia el PDF", "❌No, gracias"]
+
+    #         replyButtonData = buttonReply_Message(number, options, body, footer, "sed3", messageId)
+            
+    #         list_for.append(replyButtonData)
+
+    #     elif "si, envia el pdf" in text:
+    #         sticker = sticker_Message(number, get_media_id("pelfet", "sticker"))
+    #         textMessage = text_Message(number, "Buenarda elección. En breve nos comunicaremos con usted")
+
+    #         enviar_Mensaje_whatsapp(sticker)
+    #         enviar_Mensaje_whatsapp(textMessage)
+    #         time.sleep(3)
+
+    #         document = document_Message(number, sett.doc_url, "✌ Listo", "SF-Filtros de Aire")
+    #         enviar_Mensaje_whatsapp(document)
+    #         time.sleep(3)
+
+    #         body = "¿Te gustaría programar una reunion con uno de nuestros especialistas para discutir estos servicios mas a fondo?"
+    #         footer = "Equipo SF"
+    #         options = ["✅Si, agenda una reunión", "No, gracias"]
+
+    #         replyButtonData = buttonReply_Message(number, options, body, footer, "sed4", messageId)
+
+    #         list_for.append(replyButtonData)
+
+    #     elif "sí, agenda una reunión" in text:
+    #         body = "Estupendo. Por favor, seleccione una fecha y hora para la reunion:"
+    #         footer = "Equipo SF"
+    #         options = ["📅 25-09-23 09:00", "📅 25-09-23 10:00", "📅 25-09-23 11:00"]
+
+    #         listReply = listReply_Message(number, options, body, footer, "sed5", messageId)
+
+    #         list_for.append(listReply)
+        
+    #     elif "25-09-23 09:00" in text:
+    #         body = "Excelente, has seleccionado la reunion para el 25 de septiembre a las 9am. Te enviare un recordatorio un día antes. ¿Necesitas ayuda con algo mas hoy?"
+    #         footer = "Equipo SF"
+    #         options = ["✅Si, por favor", "No, gracias"]
+
+    #         buttonReply = buttonReply_Message(number, options, body, footer, "sed6", messageId)
+    #         list_for.append(buttonReply)
+    #     elif "no, gracias" in text:
+    #         msg = "Perfect! No dudes en contactarnos si tienes más preguntas. Recuerda que tambien ofrecemos material gratuito para la comunidad. ¡Hasta luego! 😁"
+    #         textMessage = text_Message(number, msg)
+    #         list_for.append(textMessage)
+    #     else:
+    #         body = "Hola. ¿Quieres que te ayude con alguna de estas opciones?"
+    #         footer = "Equipo SF"
+    #         options = ["✅ productos", "📅 agendar cita"]
+    #         list_for.append(body)
+    #         replyButtonData = buttonReply_Message(number, options, body, footer, "sed7", messageId)
+    #         list_for.append(replyButtonData)
+    #     print(len(list_for))
+    #     for item in list_for:
+    #         enviar_Mensaje_whatsapp(item)
+
+    # except Exception as e:
+    #     raise e
     
